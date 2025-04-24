@@ -1,0 +1,113 @@
+
+
+// 4x4 grid
+// from Littman, Cassandra and Kaelbling
+// Learning policies for partially observable environments: Scaling up  
+// Technical Report CS, Brown University
+
+pomdphsvirp
+
+
+// only the target is observable which is in the south east corner
+observables
+	o
+endobservables
+
+const double sl=0.5;
+
+//const int ob1x = 1
+//const int ob1y = 1
+//const int ob2x = 8
+//const int ob2y = 8
+//const int ob3x = 5
+//const int ob3y = 5
+
+//formula crash =  (ax = ob1x & ay = ob1y) | (ax = ob2x & ay = ob2y) | (ax = ob3x & ay = ob3y);
+//observable "hascrash" = crash;
+
+module grid
+	
+	x : [0..19]; // x coordinate
+	y : [0..19]; // y coordinate
+	o : [0..3]; // observables
+	// 0 - initial observation
+	// 1 - in the grid (not target)
+	// 2 - observe target
+	// 3 - bad state
+		
+	// initially randomly placed within the grid (not at the target)
+	[] o=0 -> 1/21 : (o'=1) & (x'=0) & (y'=0)
+			+ 1/21 : (o'=1) & (x'=0) & (y'=1)
+			+ 1/21 : (o'=1) & (x'=0) & (y'=2)
+			+ 1/21 : (o'=1) & (x'=0) & (y'=3)
+			+ 1/21 : (o'=1) & (x'=0) & (y'=4)
+			+ 1/21 : (o'=1) & (x'=1) & (y'=0)
+			//+ 1/34 : (o'=1) & (x'=1) & (y'=1) //this is an obstacle
+			+ 1/21 : (o'=1) & (x'=1) & (y'=2)
+			+ 1/21 : (o'=1) & (x'=1) & (y'=3)	
+			+ 1/21 : (o'=1) & (x'=1) & (y'=4)
+			+ 1/21 : (o'=1) & (x'=2) & (y'=0)
+			+ 1/21 : (o'=1) & (x'=2) & (y'=1)
+			//+ 1/34 : (o'=1) & (x'=2) & (y'=2)  // this is obstacle
+			+ 1/21 : (o'=1) & (x'=2) & (y'=3)	
+			+ 1/21 : (o'=1) & (x'=2) & (y'=4)	
+			+ 1/21 : (o'=1) & (x'=3) & (y'=0)
+			+ 1/21 : (o'=1) & (x'=3) & (y'=1)
+			+ 1/21 : (o'=1) & (x'=3) & (y'=2)
+			//+ 1/21 : (o'=1) & (x'=3) & (y'=3)  // this is obstacle
+			+ 1/21 : (o'=1) & (x'=3) & (y'=4)
+			+ 1/21 : (o'=1) & (x'=4) & (y'=0)
+			+ 1/21 : (o'=1) & (x'=4) & (y'=1)
+			+ 1/21 : (o'=1) & (x'=4) & (y'=2)
+			+ 1/21 : (o'=1) & (x'=4) & (y'=3);
+			//+ 1/21 : (o'=1) & (x'=4) & (y'=4); //this is also an obstacle
+			
+	// move around the grid
+	[east] o=1 & !(x=18 & y=9) & !(x=1 & y=2) & !(x=2 & y =3) &!(x=0 & y=1) &!(x=3 & y=4)  &!(x=4 & y=5)  &!(x=5 & y=6) -> (1-sl): (x'=min(x+1,19)) + sl: (x'=x)&(y'=y)&(o'=o); // not reached target
+	[east] o=1 & x=0 & y=1 -> (1-sl): (x'=1) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+    [east] o=1 & x=1 & y=2 -> (1-sl): (x'=2) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+    [east] o=1 & x=2 & y=3 -> (1-sl): (x'=3) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+	[east] o=1 & x=3 & y=4 -> (1-sl): (x'=4) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+	[east] o=1 & x=4 & y=5 -> (1-sl): (x'=5) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+	[east] o=1 & x=5 & y=6 -> (1-sl): (x'=6) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+	[east] o=1 & x=18 & y=9 -> (1-sl): (x'=min(x+1,19)) & (o'=2) + sl: (x'=x)&(y'=y)&(o'=o); // reached target
+	
+	[west] o=1 & !(x=2 & y=1) &  !(x=3 & y=2) &  !(x=4 & y=3) & !(x=5 & y=4) &!(x=6 & y=5) & !(x=7 & y=6) -> (1-sl): (x'=max(x-1,0)) + sl: (x'=x)&(y'=y)&(o'=o); // not reached target
+	[west] o=1 & x=2 & y=1 -> (1-sl): (x'=1) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+    [west] o=1 & x=3 & y=2 -> (1-sl): (x'=2) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+    [west] o=1 & x=4 & y=3 -> (1-sl): (x'=3) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+	[west] o=1 & x=5 & y=4 -> (1-sl): (x'=4) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+	[west] o=1 & x=6 & y=5 -> (1-sl): (x'=5) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+	[west] o=1 & x=7 & y=6 -> (1-sl): (x'=6) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); // reached bad state
+
+	[north] o=1 &!(x=19 & y =8) & !(x=1 & y=0) & !(x=2 & y=1) & !(x=3 & y=2) & !(x=4 & y=3) &!(x=5 & y=4) &!(x=6 & y=5)-> (1-sl): (y'=min(y+1,19)) + sl: (x'=x)&(y'=y)&(o'=o); // not reached target
+	[north] o=1 & x=19 & y=8 -> (1-sl): (y'=min(y+1,19)) & (o'=2) + sl: (x'=x)&(y'=y)&(o'=o); // reached target
+	[north]	o=1 & (x=1 & y=0) -> (1-sl): (y'=1) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state
+    [north]	o=1 & (x=2 & y=1) -> (1-sl): (y'=2) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state
+    [north]	o=1 & (x=3 & y=2) -> (1-sl): (y'=3) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state
+	[north]	o=1 & (x=4 & y=3) -> (1-sl): (y'=4) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state
+	[north]	o=1 & (x=5 & y=4) -> (1-sl): (y'=5) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state
+	[north]	o=1 & (x=6 & y=5) -> (1-sl): (y'=6) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state
+	
+	
+	[south] o=1 & !(x=19 & y=10) & !(x=1 & y=2) & !(x=2 & y=3)& !(x=3 & y=4) & !(x=4 & y=5) & !(x=5 & y=6) & !(x=6 & y=7) -> (1-sl): (y'=max(y-1,0)) + sl: (x'=x)&(y'=y)&(o'=o); // not reached target
+	[south] o=1 & x=19 & y=10 -> (1-sl): (y'=max(y-1,0)) & (o'=2) + sl: (x'=x)&(y'=y)&(o'=o); // reached target
+	[south] o=1 & x=1 & y=2 -> (1-sl): (y'=1) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state	
+    [south] o=1 & x=2 & y=3 -> (1-sl): (y'=2) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state	
+    [south] o=1 & x=3 & y=4 -> (1-sl): (y'=3) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state	
+	[south] o=1 & x=4 & y=5 -> (1-sl): (y'=4) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state	
+	[south] o=1 & x=5 & y=6 -> (1-sl): (y'=5) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state	
+	[south] o=1 & x=6 & y=7 -> (1-sl): (y'=6) & (o'=3) + sl: (x'=x)&(y'=y)&(o'=o); //reached bad state	
+	
+	// reached target
+	[done] o=2 -> true;
+	
+	//reached bad state
+	[bad] o=3 -> true;
+
+endmodule
+
+
+// target observation
+label "goal" = o=2;
+label "bad" = o=3;

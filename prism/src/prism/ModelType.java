@@ -125,6 +125,19 @@ public enum ModelType
 			return DTMC;
 		}
 	},
+	POMDPHSVIRP("partially observable Markov decision process with HSVI-RP implementation"){
+	  @Override
+    public boolean partiallyObservable()
+    {
+      return true;
+    }
+    
+    @Override
+    public ModelType removeNondeterminism()
+    {
+      return DTMC;
+    }
+	},
 	POPTA("partially observable probabilistic timed automaton") {
 		@Override
 		public boolean continuousTime()

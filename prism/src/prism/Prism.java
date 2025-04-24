@@ -2086,6 +2086,18 @@ public class Prism extends PrismComponent implements PrismSettingsListener
 					}
 				}
 				break;
+			case POMDPHSVIRP:
+			  if (getCurrentEngine() == PrismEngine.SYMBOLIC) {
+          mainLog.println("\nSwitching to explicit engine, which supports " + getModelType() + "s...");
+          engineOld = getEngine();
+          engineSwitched = true;
+          try {
+            setEngine(Prism.EXPLICIT);
+          } catch (PrismException e) {
+            // Won't happen
+          }
+        }
+        break;
 			// For other models, switch engine back if changed earlier
 			default:
 				if (engineSwitched) {

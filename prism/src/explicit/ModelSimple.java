@@ -115,6 +115,9 @@ public interface ModelSimple<Value> extends Model<Value>
 			case POMDP:
 				prodModel = new POMDPSimple<>();
 				break;
+			case POMDPHSVIRP:
+			  prodModel = new POMDPHSVIRPSimple<>();
+			  break;
 			case IDTMC:
 				prodModel = new IDTMCSimple<>();
 				break;

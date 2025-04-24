@@ -172,6 +172,7 @@ public class ConstructModel extends PrismComponent
 		CTMCSimple<Value> ctmc = null;
 		MDPSimple<Value> mdp = null;
 		POMDPSimple<Value> pomdp = null;
+		POMDPHSVIRPSimple<Value> pomdpHsviRp = null;
 		CTMDPSimple<Value> ctmdp = null;
 		IDTMCSimple<Value> idtmc = null;
 		IMDPSimple<Value> imdp = null;
@@ -213,6 +214,9 @@ public class ConstructModel extends PrismComponent
 			case POMDP:
 				modelSimple = pomdp = new POMDPSimple<>();
 				break;
+			case POMDPHSVIRP:
+			  modelSimple = pomdpHsviRp = new POMDPHSVIRPSimple<>();
+			  break;
 			case CTMDP:
 				modelSimple = ctmdp = new CTMDPSimple<>();
 				break;
@@ -315,6 +319,7 @@ public class ConstructModel extends PrismComponent
 							break;
 						case MDP:
 						case POMDP:
+						case POMDPHSVIRP:
 						case CTMDP:
 							distr.add(dest, modelGen.getTransitionProbability(i, j));
 							break;
@@ -351,7 +356,13 @@ public class ConstructModel extends PrismComponent
 						} else {
 							pomdp.addChoice(src, distr);
 						}
-					} else if (modelType == ModelType.CTMDP) {
+					}else if (modelType == ModelType.POMDPHSVIRP) {
+            if (distinguishActions) {
+              pomdpHsviRp.addActionLabelledChoice(src, distr, modelGen.getChoiceAction(i));
+            } else {
+              pomdpHsviRp.addChoice(src, distr);
+            }
+          } else if (modelType == ModelType.CTMDP) {
 						if (distinguishActions) {
 							ctmdp.addActionLabelledChoice(src, distr, modelGen.getChoiceAction(i));
 						} else {
@@ -374,8 +385,12 @@ public class ConstructModel extends PrismComponent
 			}
 			// For partially observable models, add observation info to state
 			// (do it after transitions are added, since observation actions are checked)
-			if (!justReach && modelType == ModelType.POMDP) {
-				setStateObservation(modelGen, (POMDPSimple<Value>) modelSimple, src, state);
+			if (!justReach) {
+			  if (modelType == ModelType.POMDP)
+			    setStateObservation(modelGen, (POMDPSimple<Value>) modelSimple, src, state);
+			  else if (modelType == ModelType.POMDPHSVIRP)
+			    setStateObservation(modelGen, (POMDPHSVIRPSimple<Value>) modelSimple, src, state);
+			    
 			}
 			// Print some progress info occasionally
 			progress.updateIfReady(src + 1);
@@ -435,6 +450,9 @@ public class ConstructModel extends PrismComponent
 			case POMDP:
 				model = sortStates ? new POMDPSimple<>(pomdp, permut) : pomdp;
 				break;
+			case POMDPHSVIRP:
+        model = sortStates ? new POMDPHSVIRPSimple<>(pomdpHsviRp, permut) : pomdpHsviRp;
+        break;
 			case CTMDP:
 				model = sortStates ? new CTMDPSimple<>(ctmdp, permut) : ctmdp;
 				break;

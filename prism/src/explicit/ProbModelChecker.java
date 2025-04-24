@@ -899,6 +899,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		case POMDP:
 			res = ((POMDPModelChecker) this).computeReachProbs((POMDP<Double>) model, remain, target, minMax.isMin(), statesOfInterest);
 			break;
+		case POMDPHSVIRP:
+      res = ((POMDPModelChecker) this).computeReachProbsHSVIRP((POMDP<Double>) model, remain, target, minMax.isMin(), statesOfInterest);
+      break;
 		case STPG:
 			res = ((STPGModelChecker) this).computeUntilProbs((STPG<Double>) model, remain, target, minMax.isMin1(), minMax.isMin2());
 			break;
@@ -1191,6 +1194,9 @@ public class ProbModelChecker extends NonProbModelChecker
 		case POMDP:
 			res = ((POMDPModelChecker) this).computeReachRewards((POMDP<Double>) model, (MDPRewards<Double>) modelRewards, target, minMax.isMin(), statesOfInterest);
 			break;
+		case POMDPHSVIRP:
+      res = ((POMDPModelChecker) this).computeReachRewardsHSVIRP((POMDP<Double>) model, (MDPRewards<Double>) modelRewards, target, minMax.isMin(), statesOfInterest);
+      break;
 		case STPG:
 			res = ((STPGModelChecker) this).computeReachRewards((STPG<Double>) model, (STPGRewards<Double>) modelRewards, target, minMax.isMin1(), minMax.isMin2());
 			break;

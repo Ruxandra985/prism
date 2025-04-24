@@ -3,7 +3,6 @@
 pomdp
 
 // Number of guesses allowed (N=1,2,3,4)
-const int N;
 
 observables s, g endobservables
 
@@ -11,7 +10,7 @@ module M
 
 	s : [0..2]; // state
 	h : [0..3]; // hidden var
-	g : [0..N] init N; // num guesses left
+	g : [0..3] init 3; // num guesses left
 
 	// Assign hidden variable randomly
 	[toss] s=0 -> 0.1:(s'=1)&(h'=1) + 0.3:(s'=1)&(h'=2) + 0.6:(s'=1)&(h'=3);

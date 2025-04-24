@@ -1,12 +1,12 @@
-// 3x3 grid (for step bounded properties)
+ // 3x3 grid (for step bounded properties)
 // based on Littman, Cassandra and Kaelbling
 // Learning policies for partially observable environments: Scaling up  
 // Technical Report CS, Brown University
 
-pomdp
+pomdphsvirp
 
 const int N = 3; // grid size
-const int K; // step bound in property
+const int K = 3; // step bound in property
 
 // only the target is observable which is in the south east corner
 // (also if the initialisation step has been done and the step count)

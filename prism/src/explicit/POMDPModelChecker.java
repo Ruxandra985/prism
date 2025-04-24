@@ -30,8 +30,8 @@ package explicit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -39,13 +39,17 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import explicit.graphviz.Decoration;
-import explicit.graphviz.Decorator;
 import explicit.rewards.MDPRewards;
 import explicit.rewards.StateRewardsSimple;
-import prism.*;
+import hsvirp.HSVIRPSolver;
+import prism.Accuracy;
+import prism.AccuracyFactory;
+import prism.Pair;
+import prism.PrismComponent;
+import prism.PrismException;
+import prism.PrismNotSupportedException;
+import prism.PrismUtils;
 import strat.FMDObsStrategyBeliefs;
-import strat.StrategyExportOptions;
 
 /**
  * Explicit-state model checker for partially observable Markov decision processes (POMDPs).
@@ -111,6 +115,82 @@ public class POMDPModelChecker extends ProbModelChecker
 	 * @param target Target states
 	 * @param min Min or max probabilities (true=min, false=max)
 	 */
+	
+	public ModelCheckerResult computeReachProbsHSVIRP(POMDP<Double> pomdp, BitSet remain, BitSet target, boolean min,
+      BitSet statesOfInterest) throws PrismException {
+	  ModelCheckerResult res = null;
+    long timer;
+
+    // Check we are only computing for a single state (and use initial state if unspecified)
+    if (statesOfInterest == null) {
+      statesOfInterest = new BitSet();
+      statesOfInterest.set(pomdp.getFirstInitialState());
+    } else if (statesOfInterest.cardinality() > 1) {
+      throw new PrismNotSupportedException("POMDPs can only be solved from a single start state");
+    }
+    
+    if (min)
+      throw new PrismException("HSVI RP is only supported for maximal reachability in POMDPs");
+    
+    HSVIRPSolver solver = new HSVIRPSolver();
+    MDPRewards<Double> mdpRewards = new MDPRewards<Double>() {
+
+      @Override
+      public Double getStateReward(int s)
+      {
+        return 0.0;
+      }
+
+      @Override
+      public Double getTransitionReward(int s, int i)
+      {
+        
+        if (target.get(s)) // already acquired reward
+          return 0.0;
+        
+        Iterator<Map.Entry<Integer, Double>> transIt = pomdp.getTransitionsIterator(s, i);
+        
+        Double expectedReward = 0.0;
+        
+        while (transIt.hasNext()) {
+          Map.Entry<Integer, Double> e = transIt.next();
+          Integer nextState = e.getKey();
+          Double transProb = e.getValue();
+          
+          if (target.get(nextState))
+            expectedReward += transProb;
+          
+        }
+        
+        return expectedReward;
+      }
+
+      @Override
+      public MDPRewards<Double> liftFromModel(Product<?> product)
+      {
+        throw new RuntimeException("Unsupported");
+      }
+
+      @Override
+      public boolean hasTransitionRewards()
+      {
+        return true;
+      }
+    };
+    
+    timer = System.currentTimeMillis();
+    mainLog.println("\nStarting probabilistic reachability (" + (min ? "min" : "max") + ")...");
+
+    res = solver.solve(pomdp, target, remain, min, statesOfInterest.nextSetBit(0), mdpRewards);
+    
+    timer = System.currentTimeMillis() - timer;
+    mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
+
+    res.timeTaken = timer; // for no errors for now
+    
+    return res;
+  }
+	
 	public ModelCheckerResult computeReachProbs(POMDP<Double> pomdp, BitSet remain, BitSet target, boolean min, BitSet statesOfInterest) throws PrismException
 	{
 		ModelCheckerResult res = null;
@@ -305,6 +385,39 @@ public class POMDPModelChecker extends ProbModelChecker
 	 * @param target Target states
 	 * @param min Min or max rewards (true=min, false=max)
 	 */
+
+  public ModelCheckerResult computeReachRewardsHSVIRP(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards,
+      BitSet target, boolean min, BitSet statesOfInterest) throws PrismException {
+    ModelCheckerResult res = null;
+    long timer;
+    
+    // Check we are only computing for a single state (and use initial state if unspecified)
+    if (statesOfInterest == null) {
+      statesOfInterest = new BitSet();
+      statesOfInterest.set(pomdp.getFirstInitialState());
+    } else if (statesOfInterest.cardinality() > 1) {
+      throw new PrismNotSupportedException("POMDPs can only be solved from a single start state");
+    }
+    
+    if (min)
+      throw new PrismException("HSVI RP is only supported for maximal reach rewards in POMDPs");
+    
+    // Start expected reachability
+    timer = System.currentTimeMillis();
+    mainLog.println("\nStarting expected reachability (" + (min ? "min" : "max") + ")...");
+    
+    
+    HSVIRPSolver solver = new HSVIRPSolver();
+    res = solver.solve(pomdp, target, null, min, statesOfInterest.nextSetBit(0), mdpRewards);
+    
+    // Finished expected reachability
+    timer = System.currentTimeMillis() - timer;
+    mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
+    
+    res.timeTaken = timer / 1000.0;
+    
+    return res;
+  }
 	public ModelCheckerResult computeReachRewards(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet target, boolean min, BitSet statesOfInterest) throws PrismException
 	{
 		ModelCheckerResult res = null;
@@ -321,7 +434,7 @@ public class POMDPModelChecker extends ProbModelChecker
 		// Start expected reachability
 		timer = System.currentTimeMillis();
 		mainLog.println("\nStarting expected reachability (" + (min ? "min" : "max") + ")...");
-
+		
 		// Compute rewards
 		res = computeReachRewardsFixedGrid(pomdp, mdpRewards, target, min, statesOfInterest.nextSetBit(0));
 

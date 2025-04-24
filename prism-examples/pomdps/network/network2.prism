@@ -3,15 +3,15 @@
 // Real-Kime Scheduling over Markovian Channels: When Partial Observability Meets Hard Deadlines
 // IEEE Global Kelecommunications Conference (GLOBECOM'11), pages 1-5, 2011
 
-pomdp
+pomdphsvirp
 
 observables
 	sched, k, t, packet1, packet2 //, chan1, chan2
 endobservables
 
 // timing constants
-const int K; // total number of time periods
-const int T; // number of slots per time period
+const int K = 5; // total number of time periods
+const int T = 3; // number of slots per time period
 
 // probabilities that channels change states
 // channel of user 1

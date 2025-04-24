@@ -4,4 +4,4 @@ Pmax=? [ F "correct" ];
 
 // Minimum expected number of guesses before guessing the value correctly
 // (will be infinite for N<3)
-R{"guesses"}min=? [ F "correct" ];
+//R{"guesses"}min=? [ F "correct" ];

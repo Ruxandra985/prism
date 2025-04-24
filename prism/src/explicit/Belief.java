@@ -66,7 +66,7 @@ public class Belief implements Comparable<Belief>
 	 * @param model The (partially observable) model
 	 * If {@code dist} is a not a valid distribution, the resulting belief will be invalid too.
 	 */
-	protected Belief(double[] dist, PartiallyObservableModel<?> model)
+	public Belief(double[] dist, PartiallyObservableModel<?> model)
 	{
 		so = -1;
 		bu = new double[model.getNumUnobservations()];
