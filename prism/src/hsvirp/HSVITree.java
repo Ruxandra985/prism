@@ -33,10 +33,8 @@ class HSVITree {
     
     List<Map.Entry<Object, Double[]>> VsLowerBound;
     List<Map.Entry<Object, Double[]>> VsLowerBoundInitial;
-    List<Double> VUpper;
-    // VUpper[i] = VU(beliefNodes[i]) 
+    List<Double> VUpper; 
     List<Double> VLower;
-    // similar as VUpper
     
     List<List<Double>> QaLower;
     List<List<Double>> QaUpper;
@@ -50,9 +48,9 @@ class HSVITree {
     List<BitSet> baPruned; 
     PruneData pruneData;
     
-    List<Integer> beliefSampleFrequency; // # times sampled belief state b
-    List<List<Integer>> beliefActionSampleFrequency; // # times sampled belief state b and action a from it
-    List<List<List<Integer>>> beliefActObsSampleFrequency; // # times sampled belief b, action a and observation o
+    List<Integer> beliefSampleFrequency; // times sampled belief state b
+    List<List<Integer>> beliefActionSampleFrequency; // times sampled belief state b and action a from it
+    List<List<List<Integer>>> beliefActObsSampleFrequency; // times sampled belief b, action a and observation o
     
 
     public HSVITree(POMDP<Double> pomdp, HSVIRPSolver solver, BitSet target, BitSet remain, MDPRewards<Double> mdpRewards) {
@@ -112,13 +110,13 @@ class HSVITree {
 
     private static Belief processState(HSVITree tree, Belief initialBelief) {
       // normalise to get only states you want to remain in
-      double[] beliefDist = initialBelief.toDistributionOverStates(tree.pomdp);
+      //double[] beliefDist = initialBelief.toDistributionOverStates(tree.pomdp);
       
-      for (int i = 0 ; i < tree.pomdp.getNumStates() ; i++) {
+      /*for (int i = 0 ; i < tree.pomdp.getNumStates() ; i++) {
         if (tree.remain != null && !tree.remain.get(i)) {
           beliefDist[i] = 0.0;
         }
-      }
+      }*/
       
       return initialBelief;
     }
@@ -282,6 +280,8 @@ class HSVITree {
       tree.VLower.set(beliefIndex, lowerValue(tree, beliefState));
       
       tree.VUpper.set(beliefIndex, Collections.max(tree.QaUpper.get(beliefIndex)));
+      
+      //System.out.print(beliefIndex+"," + tree.VUpper.get(beliefIndex) + " ");
       
     }
     

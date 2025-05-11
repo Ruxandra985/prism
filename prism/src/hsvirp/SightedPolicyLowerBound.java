@@ -72,9 +72,6 @@ public class SightedPolicyLowerBound {
         if (equal)
           equalCounts++;
         
-        //if (equalCounts > 1)
-          //System.out.println("clones");
-        
         
         if (equalDominates) {
           if (equal || dominated)

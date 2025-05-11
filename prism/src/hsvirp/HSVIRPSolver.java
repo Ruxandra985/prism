@@ -26,7 +26,7 @@ import prism.PrismException;
 public class HSVIRPSolver {
     public BlindPolicyLowerBound lowerBound;
     public FastInformedUpperBound upperBound;
-    public SightedPolicyLowerBound spol;
+    public NewPolicyLowerBound npol;
     private HSVITree tree;
     private POMDP<Double> pomdp;
     private MDPRewards<Double> mdpRewards;
@@ -35,7 +35,7 @@ public class HSVIRPSolver {
     private double precision = 1e-3;
     private double kappa = 0.5;
     private double delta = 0.01;
-    private long maxTime = 30000000; // only max 10 seconds
+    private long maxTime = 7200000; // only max 2 hours
     private int maxSteps = Integer.MAX_VALUE;
     private int initSteps = 200;
     private int stepIncrement = 10;
@@ -50,13 +50,13 @@ public class HSVIRPSolver {
     public HSVIRPSolver() {
       this.lowerBound = new BlindPolicyLowerBound();
       this.upperBound = new FastInformedUpperBound();
-      this.spol = new SightedPolicyLowerBound();
+      this.npol = new NewPolicyLowerBound();
       
     }
     
     public Set<Map.Entry<Object, Double[]>> computeLowerBoundPolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain){
-      //return spol.computePolicy(pomdp, mdpRewards, remain);
-      return lowerBound.computePolicy(pomdp, mdpRewards).entrySet();
+      return npol.computePolicy(pomdp, mdpRewards, remain).entrySet();
+      //return lowerBound.computePolicy(pomdp, mdpRewards, remain).entrySet();
     }
     
     public Set<Map.Entry<Object, Double[]>> computeUpperBoundPolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet target, BitSet remain){
@@ -107,19 +107,20 @@ public class HSVIRPSolver {
         long currTime = (System.currentTimeMillis() - t0);
         double rootDiff = tree.VUpper.get(indexOfRoot) - tree.VLower.get(indexOfRoot); 
         
-        System.out.println("time: " + currTime +
+        /*System.out.println("time: " + currTime +
             " diff: " + rootDiff +
             " lower: " + tree.VLower.get(indexOfRoot) +
             " upper: " + tree.VUpper.get(indexOfRoot) +
             " beliefs: " + tree.beliefNodes.size() + 
             " alphaVec " + tree.VsLowerBound.size() +
-            " depth trial: " + depthTrial);
+            " depth trial: " + depthTrial);*/
         
         while (tree.VUpper.get(indexOfRoot) - tree.VLower.get(indexOfRoot) > precision &&
             System.currentTimeMillis() - t0 < maxTime &&
             nrSubIter < nrIterations) {
           // sample
           sample(depthTrial, effectiveDiscount);
+          //System.out.println();
           // backup
           backupFrontier(); // should ensure the new bounds are indeed computed
           nrSubIter++;
@@ -131,25 +132,25 @@ public class HSVIRPSolver {
           }
           currTime = (System.currentTimeMillis() - t0);
           rootDiff = tree.VUpper.get(indexOfRoot) - tree.VLower.get(indexOfRoot); 
-          System.out.println("time: " + currTime +
+          /*System.out.println("time: " + currTime +
               " diff: " + rootDiff +
               " lower: " + tree.VLower.get(indexOfRoot) +
               " upper: " + tree.VUpper.get(indexOfRoot) +
               " beliefs: " + tree.beliefNodes.size() + 
               " alphaVec " + tree.VsLowerBound.size() +
-              " depth trial: " + depthTrial);
+              " depth trial: " + depthTrial);*/
           
           
         }
         
         currTime = (System.currentTimeMillis() - t0);
         rootDiff = tree.VUpper.get(indexOfRoot) - tree.VLower.get(indexOfRoot); 
-        System.out.println("time: " + currTime +
+        /*System.out.println("time: " + currTime +
             " diff: " + rootDiff +
             " lower: " + tree.VLower.get(indexOfRoot) +
             " upper: " + tree.VUpper.get(indexOfRoot) +
             " beliefs: " + tree.beliefNodes.size() + 
-            " alphaVec " + tree.VsLowerBound.size() );
+            " alphaVec " + tree.VsLowerBound.size() );*/
         
         if (Math.abs(tree.VUpper.get(indexOfRoot) - tree.VLower.get(indexOfRoot) - prevRootDiff) < 1e-2) {
           depthTrial += stepIncrement;
@@ -258,7 +259,7 @@ public class HSVIRPSolver {
 
     public void sample(int depthTrial, double effectiveDiscount) {
       tree.frontier.clear();
-      cycleDetector.clear(); // reset the cycleDetector?
+      cycleDetector.clear(); // reset the cycleDetector
       
       int indexOfRoot = 0;
       double rootDiff = tree.VUpper.get(indexOfRoot) - tree.VLower.get(indexOfRoot);
@@ -284,6 +285,8 @@ public class HSVIRPSolver {
       
       double VLower = tree.VLower.get(currNode);
       double VUpper = tree.VUpper.get(currNode);
+      
+      //System.out.println("state " + currNode + " upper " + VUpper + " lower " + VLower); 
       
       if (VUpper <= VLower + difference * kappa * Math.pow(effectiveDiscount, -currDepth) || currDepth > depthTrial ) {
         tree.frontier.add(currNode);
@@ -434,11 +437,14 @@ public class HSVIRPSolver {
         this.actionsFromCurr.remove(toRemove.get(i));
       }
       
+      //System.out.print(action+","+QUpper+" ");
+      
       return action;
     }
 
 
     private void backupFrontier() {
+      //System.out.println(tree.frontier.size());
       for (int i = tree.frontier.size() - 1 ; i >= 0 ; i--) {
           backup(tree.frontier.get(i));
       }
@@ -472,9 +478,6 @@ public class HSVIRPSolver {
             
             if (!alphaObs.get(sIt).containsKey(observation))
               alphaObs.get(sIt).put(observation, new HashMap<>());
-            
-            if (maxAlphaVal[sIt] == null)
-              System.out.println("what???");
             
             alphaObs.get(sIt).get(observation).put(actionLabel, maxAlphaVal[sIt]);
           }

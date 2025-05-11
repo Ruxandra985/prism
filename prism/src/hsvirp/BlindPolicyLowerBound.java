@@ -1,6 +1,7 @@
 package hsvirp;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.HashMap;
 import explicit.POMDP;
 import explicit.rewards.MDPRewards;
@@ -39,7 +40,7 @@ public class BlindPolicyLowerBound {
       return maxRes;
     }
     
-    private void worstStateAlphas(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards) {
+    private void worstStateAlphas(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain) {
       
       for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
         for (int action = 0 ; action < pomdp.getNumChoices(state); action++) {
@@ -58,7 +59,7 @@ public class BlindPolicyLowerBound {
         for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
           int action = pomdp.getChoiceByAction(state, actionName);
           
-          if (action == -1)
+          if (action == -1 || (remain != null && !remain.get(state)))
             continue; // action not possible from state
           
           alphaVectors.get(actionName)[state] = mdpRewards.getTransitionReward(state, action);
@@ -68,7 +69,7 @@ public class BlindPolicyLowerBound {
       
     }
     
-    private void update(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards) {
+    private void update(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain) {
       Double[] alphaTemporary = new Double[pomdp.getNumStates()];
       Arrays.fill(alphaTemporary, 0.0);
       
@@ -77,7 +78,7 @@ public class BlindPolicyLowerBound {
         for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
           int action = pomdp.getChoiceByAction(state, actionName);
           
-          if (action == -1) {
+          if (action == -1 || (remain != null && !remain.get(state))) {
             alphaTemporary[state] = 0.0;
             continue; // action not possible from state
           }
@@ -109,8 +110,8 @@ public class BlindPolicyLowerBound {
       
     }
     
-    public HashMap<Object, Double[]> computePolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards){
-      worstStateAlphas(pomdp, mdpRewards); // this initialises alphaVectors
+    public HashMap<Object, Double[]> computePolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain){
+      worstStateAlphas(pomdp, mdpRewards, remain); // this initialises alphaVectors
       
       residuals = new HashMap<Object, Double>();
       
@@ -125,7 +126,7 @@ public class BlindPolicyLowerBound {
       
       int iter = 0;
       while (iter < maxIterations && (System.currentTimeMillis() - t0) / 1000.0 < maxTime) {
-        update(pomdp, mdpRewards);
+        update(pomdp, mdpRewards, remain);
         iter++;
         
         boolean smallerThanBelRes = true;

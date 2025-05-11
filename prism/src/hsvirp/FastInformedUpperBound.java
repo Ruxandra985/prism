@@ -76,10 +76,12 @@ public class FastInformedUpperBound {
               
                 for (int succState = 0 ; succState < pomdp.getNumStates() ; succState++) {
                   
-                  if (successor[succState] == 0.0)
+                  // here, every state has exactly one observation
+                  
+                  if (successor[succState] == 0.0 || pomdp.getObservation(succState) != observation)
                     continue;
                   
-                  vCurr += obsProb * successor[succState] * alphaVec[succState];
+                  vCurr += successor[succState] * alphaVec[succState];
                   
                 }
                 
@@ -98,6 +100,7 @@ public class FastInformedUpperBound {
             computeBeliefResiduals(alphaVectors.get(actionName), alphaTemporary));
         
         alphaVectors.put(actionName, alphaTemporary.clone());
+        //System.out.println(alphaTemporary[0]);
       }
       
     }
@@ -125,6 +128,7 @@ public class FastInformedUpperBound {
         while (iter < maxIter && (System.currentTimeMillis() - t0) / 1000.0 < maxTime) {
           update(pomdp, mdpRewards, target, remain);
           iter++;
+          //System.out.println("Iteration");
           
           boolean smallerThanBelRes = true;
           
