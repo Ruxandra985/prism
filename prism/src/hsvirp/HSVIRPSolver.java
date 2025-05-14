@@ -27,6 +27,7 @@ public class HSVIRPSolver {
     public BlindPolicyLowerBound lowerBound;
     public FastInformedUpperBound upperBound;
     public NewPolicyLowerBound npol;
+    public SightedPolicyLowerBound spol;
     private HSVITree tree;
     private POMDP<Double> pomdp;
     private MDPRewards<Double> mdpRewards;
@@ -51,10 +52,17 @@ public class HSVIRPSolver {
       this.lowerBound = new BlindPolicyLowerBound();
       this.upperBound = new FastInformedUpperBound();
       this.npol = new NewPolicyLowerBound();
+      this.spol = new SightedPolicyLowerBound();
       
     }
     
     public Set<Map.Entry<Object, Double[]>> computeLowerBoundPolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain){
+      
+      //Set<Map.Entry<Object, Double[]>> policy = spol.computePolicy(pomdp, mdpRewards, remain).entrySet();
+      //policy.addAll(lowerBound.computePolicy(pomdp, mdpRewards, remain).entrySet());
+      
+      //return policy;
+      //return spol.computePolicy(pomdp, mdpRewards, remain).entrySet();
       return npol.computePolicy(pomdp, mdpRewards, remain).entrySet();
       //return lowerBound.computePolicy(pomdp, mdpRewards, remain).entrySet();
     }
@@ -192,6 +200,13 @@ public class HSVIRPSolver {
 
             // if no changes, for loop finishes
         }
+        /*System.out.println("time: " + currTime +
+        " diff: " + rootDiff +
+        " lower: " + tree.VLower.get(indexOfRoot) +
+        " upper: " + tree.VUpper.get(indexOfRoot) +
+        " beliefs: " + tree.beliefNodes.size() + 
+        " alphaVec " + tree.VsLowerBound.size() );*/
+        
       }
       
       Double hi = tree.VUpper.get(indexOfRoot);
@@ -210,6 +225,8 @@ public class HSVIRPSolver {
       res.numIters = nrOverallIterations;
       res.soln = soln;
       res.accuracy = new Accuracy(err == 0.0 ? AccuracyLevel.EXACT_FLOATING_POINT : AccuracyLevel.BOUNDED, err, true); 
+      res.timeTaken = System.currentTimeMillis() - t0;
+      
       
       return res; 
     }

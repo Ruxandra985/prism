@@ -183,10 +183,7 @@ public class POMDPModelChecker extends ProbModelChecker
 
     res = solver.solve(pomdp, target, remain, min, statesOfInterest.nextSetBit(0), mdpRewards);
     
-    timer = System.currentTimeMillis() - timer;
-    mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
-
-    res.timeTaken = timer; // for no errors for now
+    mainLog.println("Probabilistic reachability took " + res.timeTaken / 1000.0 + " seconds.");
     
     return res;
   }
@@ -411,10 +408,8 @@ public class POMDPModelChecker extends ProbModelChecker
     res = solver.solve(pomdp, target, null, min, statesOfInterest.nextSetBit(0), mdpRewards);
     
     // Finished expected reachability
-    timer = System.currentTimeMillis() - timer;
-    mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
+    mainLog.println("Expected reachability took " + res.timeTaken / 1000.0 + " seconds.");
     
-    res.timeTaken = timer / 1000.0;
     
     return res;
   }

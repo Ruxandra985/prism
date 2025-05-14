@@ -1,9 +1,12 @@
 package hsvirp;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,12 +17,12 @@ public class SightedPolicyLowerBound {
     private int maxIterations;
     private double maxTime;
     private double belRes;
-    private Set<Map.Entry<Object, Double>> residuals;
+    private HashMap<List<Object>, Double> residuals;
     private Set<Object> addedActions = new HashSet<>();
 
-    Set<Map.Entry<Object, Double[]>> alphaVectors = new HashSet<>();
+    HashMap<List<Object>, Double[]> alphaVectors = new HashMap<>();
 
-    Set<Map.Entry<Object, Double[]>> alphaVectorsNew = new HashSet<>();
+    HashMap<List<Object>, Double[]> alphaVectorsNew = new HashMap<>();
     
     // Note: discount factor is taken as 1
     
@@ -28,7 +31,7 @@ public class SightedPolicyLowerBound {
         this.maxIterations = maxIter;
         this.maxTime = maxTime;
         this.belRes = beliefResidual;
-        this.residuals = new HashSet<>();
+        this.residuals = new HashMap<>();
         
     }
 
@@ -48,10 +51,10 @@ public class SightedPolicyLowerBound {
       return maxRes;
     }
     
-    private boolean isDominated (POMDP<Double> pomdp, Set<Map.Entry<Object, Double[]>> dominator, Double[] alphaTemporary, boolean equalDominates) {
+    private boolean isDominated (POMDP<Double> pomdp, HashMap<List<Object>, Double[]> dominator, Double[] alphaTemporary, boolean equalDominates) {
       int equalCounts = 0;
       
-      for (Map.Entry<Object, Double[]> alphaVec : dominator) {
+      for (Map.Entry<List<Object>, Double[]> alphaVec : dominator.entrySet()) {
         Double[] vec = alphaVec.getValue();
         
         boolean dominated = true;
@@ -102,6 +105,8 @@ public class SightedPolicyLowerBound {
         Double[] arrayInit = new Double[pomdp.getNumStates()];
         Arrays.fill(arrayInit, 0.0);
         
+        double arraySum = 0.0;
+        
         for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
           int action = pomdp.getChoiceByAction(state, actionName);
           
@@ -110,11 +115,19 @@ public class SightedPolicyLowerBound {
           
           arrayInit[state] = mdpRewards.getTransitionReward(state, action);
           
+          arraySum += arrayInit[state];
+          
         }
-        alphaVectors.add(new AbstractMap.SimpleEntry<>(actionName, arrayInit));
+        
+        if (arraySum > 0.0) {
+          // do not consider vectors that are just full of zeroes
+          List<Object> actionsIdentified = new ArrayList<>();
+          actionsIdentified.add(actionName);
+          
+          alphaVectorsNew.put(actionsIdentified, arrayInit);
+        }
       }
       
-      alphaVectorsNew = alphaVectors; // initially
       
     }
     
@@ -122,87 +135,243 @@ public class SightedPolicyLowerBound {
       Double[] alphaTemporary = new Double[pomdp.getNumStates()];
       Arrays.fill(alphaTemporary, 0.0);
       
-      Set<Map.Entry<Object, Double[]>> alphaVectorsToAdd = new HashSet<>();
+      HashMap<List<Object>, Double[]> alphaVectorsToAdd = new HashMap<>();
+      HashMap<List<Object>, Double[]> alphaVectorsToExtend = new HashMap<>();
       
-      for (Map.Entry<Object, Double[]> alphaVec : alphaVectors) {
-        Object actionName = alphaVec.getKey();
-        for (Map.Entry<Object, Double[]> alphaVecNext : alphaVectorsNew) {
+      // first we do lookahead step on all of the old vectors
+      for (Map.Entry<List<Object>, Double[]> alphaVec : alphaVectors.entrySet()) {
         
-          Double[] vec = alphaVecNext.getValue();
+        List<Object> actionsIdentified = alphaVec.getKey();
+        // we take actions based on order in actionsIdentified list.
+        // If some states have none of the actionsIdentified, we add one alpha vec
+        // for each action we can augment our list with
+        
+        Double[] vec = alphaVec.getValue();
           
-          Double sumNewArr = 0.0;
+        Double sumNewArr = 0.0;
           
-          for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
-            int action = pomdp.getChoiceByAction(state, actionName);
+        for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
+          
+          if (remain != null && !remain.get(state)){
+            alphaTemporary[state] = 0.0;
+            continue; // need to ignore state
+          }
+          
+          boolean foundAvailable = false;
+          Object actionFound = null;
+          for (Object knownAction : actionsIdentified) {
+            int action = pomdp.getChoiceByAction(state, knownAction);
             
-            if (action == -1 || (remain != null && !remain.get(state))) {
-              alphaTemporary[state] = 0.0;
-              continue; // action not possible from state
+            if (action != -1){
+              foundAvailable = true;
+              actionFound = knownAction;
+              break;
             }
-            
-            
+          }
+          
+          if (foundAvailable) { // we take that action, as per our policy
+            int action = pomdp.getChoiceByAction(state, actionFound);
             Double reward = mdpRewards.getTransitionReward(state, action);
             
             Double value = 0.0;
-            
+              
             double[] certainStateBelief = new double[pomdp.getNumStates()];
             certainStateBelief[state] = 1.0;
             double[] successor = pomdp.getBeliefInDistAfterChoice(certainStateBelief, action);
-            
-  
+              
+    
             for (int succState = 0 ; succState < pomdp.getNumStates() ; succState++) {
               if (successor[succState] != 0.0) {
                 value += successor[succState] * vec[succState];
               }  
             }
-            
+              
             alphaTemporary[state] = value + reward;
-            
+              
             sumNewArr += value + reward;
           }
-          
-          if (sumNewArr > 0.0 && !isDominated(pomdp, alphaVectors, alphaTemporary, true) && !isDominated(pomdp, alphaVectorsToAdd, alphaTemporary, true)) {
-            // not arrays full of zeroes and check it is not dominated by any others
-            residuals.add(new AbstractMap.SimpleEntry<>(actionName, computeBeliefResiduals(alphaVec.getValue(), alphaTemporary)));
-            alphaVectorsToAdd.add(new AbstractMap.SimpleEntry<>(actionName, alphaTemporary.clone()));
+          else {
+            // this set belongs in S
+            alphaTemporary[state] = 0.0;
           }
+            
           
         }
+        
+        if (sumNewArr == 0.0)
+          continue; // irrelevant array
+        
+        // ok, did one step lookahead
+        alphaVectorsToAdd.put(actionsIdentified, alphaTemporary.clone());
+        residuals.put(actionsIdentified, computeBeliefResiduals(vec, alphaTemporary));
+        // we claim these arrays have been extended before at some point if
+        // extension was possible, so we don't extend them anymore or in the future
       }
       
-      // do some pruning for alphaVectors
-      
-      
-      Set<Map.Entry<Object, Double[]>> alphaVectorsToRemove = new HashSet<>();
-      //System.out.println();
-      for (Map.Entry<Object, Double[]> alphaVec : alphaVectors) {
-        if (isDominated(pomdp, alphaVectors, alphaVec.getValue(), false) || isDominated(pomdp, alphaVectorsToAdd, alphaVec.getValue(), false))
-          alphaVectorsToRemove.add(alphaVec);
+      for (Map.Entry<List<Object>, Double[]> alphaVec : alphaVectorsNew.entrySet()) {
+        
+        List<Object> actionsIdentified = alphaVec.getKey();
+        // we take actions based on order in actionsIdentified list.
+        // If some states have none of the actionsIdentified, we add one alpha vec
+        // for each action we can augment our list with
+        
+        Double[] vec = alphaVec.getValue();
+          
+        Double sumNewArr = 0.0;
+        
+        ArrayList<Integer> uncertainStates = new ArrayList<>();
+          
+        for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
+          
+          if (remain != null && !remain.get(state)){
+            alphaTemporary[state] = 0.0;
+            continue; // need to ignore state
+          }
+          
+          boolean foundAvailable = false;
+          Object actionFound = null;
+          for (Object knownAction : actionsIdentified) {
+            int action = pomdp.getChoiceByAction(state, knownAction);
+            
+            if (action != -1){
+              foundAvailable = true;
+              actionFound = knownAction;
+              break;
+            }
+          }
+          
+          if (foundAvailable) { // we take that action, as per our policy
+            int action = pomdp.getChoiceByAction(state, actionFound);
+            Double reward = mdpRewards.getTransitionReward(state, action);
+            
+            Double value = 0.0;
+              
+            double[] certainStateBelief = new double[pomdp.getNumStates()];
+            certainStateBelief[state] = 1.0;
+            double[] successor = pomdp.getBeliefInDistAfterChoice(certainStateBelief, action);
+              
+    
+            for (int succState = 0 ; succState < pomdp.getNumStates() ; succState++) {
+              if (successor[succState] != 0.0) {
+                value += successor[succState] * vec[succState];
+              }  
+            }
+              
+            alphaTemporary[state] = value + reward;
+              
+            sumNewArr += value + reward;
+          }
+          else {
+            // this set belongs in S
+            alphaTemporary[state] = 0.0;
+            uncertainStates.add(state);
+          }
+            
+          
+        }
+        
+        if (sumNewArr == 0.0)
+          continue; // irrelevant array
+        
+        // ok. You still need to lookahead for new vectors too 
+        alphaVectorsToAdd.put(actionsIdentified, alphaTemporary.clone());
+        residuals.put(actionsIdentified, computeBeliefResiduals(vec, alphaTemporary));
+        // but in this case you also try to extend, but not in the future, just now
+        if (!uncertainStates.isEmpty()) {
+          for (Object actionName: addedActions) {
+            if (!actionsIdentified.contains(actionName)) {
+              // enhance our alpha vector by allowing the uncertain states to take actionName if they can
+              
+              List<Object> newActId = (List<Object>)((ArrayList<Object>) actionsIdentified).clone();
+              newActId.add(actionName);
+              
+              if (alphaVectorsToAdd.containsKey(newActId))
+                continue; // already contains 
+              
+              boolean enhanced = false;
+              
+              for (Integer state : uncertainStates) {
+                int action = pomdp.getChoiceByAction(state, actionName);
+                if (action == -1) { // action not available
+                  alphaTemporary[state] = 0.0;
+                  continue;
+                }
+                Double reward = mdpRewards.getTransitionReward(state, action);
+                
+                Double value = 0.0;
+                  
+                double[] certainStateBelief = new double[pomdp.getNumStates()];
+                certainStateBelief[state] = 1.0;
+                double[] successor = pomdp.getBeliefInDistAfterChoice(certainStateBelief, action);
+                  
+        
+                for (int succState = 0 ; succState < pomdp.getNumStates() ; succState++) {
+                  if (successor[succState] != 0.0) {
+                    value += successor[succState] * vec[succState];
+                  }  
+                }
+                  
+                alphaTemporary[state] = value + reward;
+                if (alphaTemporary[state] > 0.0)
+                  enhanced = true; // it enhanced at least one previously uncertain State
+              }
+              
+              
+              if (enhanced) {
+                // we have obtained one new alpha vector!
+                
+                alphaVectorsToExtend.put(newActId, alphaTemporary.clone());
+                residuals.put(newActId, computeBeliefResiduals(vec, alphaTemporary));
+              }
+              
+            }
+            
+          }
+        }
+          
       }
       
-      for (Map.Entry<Object, Double[]> alphaVec : alphaVectorsToAdd) {
-        alphaVectors.add(alphaVec);
+      // do some pruning for alphaVectors maybe
+      
+      // get rid of the previous vectors.
+      
+      Set<List<Object>> alphaVectorsToRemove = new HashSet<>();
+      
+      for (Map.Entry<List<Object>, Double[]> alphaVec : alphaVectorsToAdd.entrySet()) {
+        if (isDominated(pomdp, alphaVectorsToAdd, alphaVec.getValue(), false))
+          alphaVectorsToRemove.add(alphaVec.getKey());
+        // see if this is dominated  
       }
       
-      for (Map.Entry<Object, Double[]> alphaVec : alphaVectorsToRemove) {
-        alphaVectors.remove(alphaVec);
-      }
+      // the vectors that have ever been extended we will not try to extend later
+      // we only look at extending the newly extended ones
+      alphaVectors = (HashMap<List<Object>, Double[]>)alphaVectorsToAdd.clone();
       
-      alphaVectorsNew = alphaVectorsToAdd;
+      alphaVectorsNew = (HashMap<List<Object>, Double[]>)alphaVectorsToExtend.clone();
       
+      //for (List<Object> alphaVecKey : alphaVectorsToRemove) {
+        //alphaVectors.remove(alphaVecKey);
+      //}
+      
+      //System.out.println("wanted to add" + alphaVectorsNew.size());
+      //System.out.println("wanted to remove" + alphaVectorsToRemove.size());
+      
+      //alphaVectorsNew= alphaVectorsToAdd;
+
+      //System.out.println("currently " + (alphaVectorsNew.size() + alphaVectors.size()));
       
       
     }
     
-    public Set<Map.Entry<Object, Double[]>> computePolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain){
+    public HashMap<Object, Double[]> computePolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain){
       worstStateAlphas(pomdp, mdpRewards, remain); // this initialises alphaVectors
-      
-      residuals = new HashSet<>();
       
       for (int state = 0 ; state < pomdp.getNumStates() ; state++) {
         for (int action = 0 ; action < pomdp.getNumChoices(state); action++) {
           Object actionName = pomdp.getAction(state, action);
-          residuals.add(new AbstractMap.SimpleEntry<>(actionName, 0.0));
+          List<Object> actionsIdentified = new ArrayList<>();
+          actionsIdentified.add(actionName);
+          residuals.put(actionsIdentified, 0.0);
         }
       }
       
@@ -211,21 +380,70 @@ public class SightedPolicyLowerBound {
       int iter = 0;
       while (iter < maxIterations && (System.currentTimeMillis() - t0) / 1000.0 < maxTime) {
         iter++;
-        //System.out.println(iter);
         update(pomdp, mdpRewards, remain);
-        
+
+        //System.out.println("have rn: " + alphaVectors.size());
         boolean smallerThanBelRes = true;
         
-        for (Map.Entry<Object, Double> residual: residuals) {
+        for (Map.Entry<List<Object>, Double> residual: residuals.entrySet()) {
           smallerThanBelRes = smallerThanBelRes && (residual.getValue() < belRes);
         }
         
-        if (smallerThanBelRes || alphaVectorsNew.isEmpty()) 
+        if (smallerThanBelRes) 
             break;
+        
+        //System.out.println("have now old"+ alphaVectors.size());
+        //System.out.println("have now new"+ alphaVectorsNew.size());
+        System.out.println("time "+ (System.currentTimeMillis() - t0) / 1000.0 );
       }
       
+      Set<List<Object>> alphaVectorsToRemove = new HashSet<>();
       
-      return alphaVectors;
+      for (Map.Entry<List<Object>, Double[]> alphaVec : alphaVectors.entrySet()) {
+        if (isDominated(pomdp, alphaVectors, alphaVec.getValue(), false))
+          alphaVectorsToRemove.add(alphaVec.getKey());
+        // see if this is dominated  
+      }
+      
+      //if (alphaVectorsToAdd.size() == 0)
+        //System.out.println(" ");
+      
+      //for (List<Object> alphaVecKey : alphaVectorsToRemove) {
+        //alphaVectors.remove(alphaVecKey);
+      //}
+      
+      //System.out.println("have rn: " + alphaVectors.size());
+      
+      
+      // we will aim to remove duplicates from alphaVectors
+      
+      Map<List<Object>, Double[]> noDuplAlphaVec = new HashMap<>();
+      
+      
+      for (Map.Entry<List<Object>, Double[]> entry1: alphaVectors.entrySet()) {
+        // add entry1 to the no duplicates map if you can
+        
+        boolean canAdd = true;
+        
+        for (Map.Entry<List<Object>, Double[]> entry2: noDuplAlphaVec.entrySet()) {
+          if (Arrays.equals(entry2.getValue(), entry1.getValue()) 
+              && !entry1.getKey().equals(entry2.getKey())) {
+            canAdd = false;
+            break;
+          }
+        }
+        
+        if (canAdd) {
+          noDuplAlphaVec.put(entry1.getKey(), entry1.getValue());
+        }
+      }
+      
+      HashMap<Object, Double[]> resultAlphaVec = new HashMap<>();
+      for (Map.Entry<List<Object>, Double[]> entry: noDuplAlphaVec.entrySet()) {
+        resultAlphaVec.put(entry.getKey(), entry.getValue());
+      }
+      System.out.println("finally having " + resultAlphaVec.size());
+      return resultAlphaVec;
     }
     
 }

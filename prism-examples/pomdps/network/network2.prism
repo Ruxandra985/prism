@@ -11,7 +11,7 @@ endobservables
 
 // timing constants
 const int K = 5; // total number of time periods
-const int T = 3; // number of slots per time period
+const int T = 4; // number of slots per time period
 
 // probabilities that channels change states
 // channel of user 1
