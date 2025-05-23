@@ -349,17 +349,6 @@ public class SightedPolicyLowerBound {
       
       alphaVectorsNew = (HashMap<List<Object>, Double[]>)alphaVectorsToExtend.clone();
       
-      //for (List<Object> alphaVecKey : alphaVectorsToRemove) {
-        //alphaVectors.remove(alphaVecKey);
-      //}
-      
-      //System.out.println("wanted to add" + alphaVectorsNew.size());
-      //System.out.println("wanted to remove" + alphaVectorsToRemove.size());
-      
-      //alphaVectorsNew= alphaVectorsToAdd;
-
-      //System.out.println("currently " + (alphaVectorsNew.size() + alphaVectors.size()));
-      
       
     }
     
@@ -382,7 +371,6 @@ public class SightedPolicyLowerBound {
         iter++;
         update(pomdp, mdpRewards, remain);
 
-        //System.out.println("have rn: " + alphaVectors.size());
         boolean smallerThanBelRes = true;
         
         for (Map.Entry<List<Object>, Double> residual: residuals.entrySet()) {
@@ -391,10 +379,6 @@ public class SightedPolicyLowerBound {
         
         if (smallerThanBelRes) 
             break;
-        
-        //System.out.println("have now old"+ alphaVectors.size());
-        //System.out.println("have now new"+ alphaVectorsNew.size());
-        System.out.println("time "+ (System.currentTimeMillis() - t0) / 1000.0 );
       }
       
       Set<List<Object>> alphaVectorsToRemove = new HashSet<>();
@@ -404,15 +388,6 @@ public class SightedPolicyLowerBound {
           alphaVectorsToRemove.add(alphaVec.getKey());
         // see if this is dominated  
       }
-      
-      //if (alphaVectorsToAdd.size() == 0)
-        //System.out.println(" ");
-      
-      //for (List<Object> alphaVecKey : alphaVectorsToRemove) {
-        //alphaVectors.remove(alphaVecKey);
-      //}
-      
-      //System.out.println("have rn: " + alphaVectors.size());
       
       
       // we will aim to remove duplicates from alphaVectors
@@ -442,7 +417,6 @@ public class SightedPolicyLowerBound {
       for (Map.Entry<List<Object>, Double[]> entry: noDuplAlphaVec.entrySet()) {
         resultAlphaVec.put(entry.getKey(), entry.getValue());
       }
-      System.out.println("finally having " + resultAlphaVec.size());
       return resultAlphaVec;
     }
     

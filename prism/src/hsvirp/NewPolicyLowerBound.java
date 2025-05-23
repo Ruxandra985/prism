@@ -56,7 +56,6 @@ public class NewPolicyLowerBound {
       Double maxRew = 0.0;
       int maxRewAction = 0;
       for (int action = 0 ; action < pomdp.getNumChoices(state); action++) {
-        //System.out.print(pomdp.getAction(state, action));
         if (!alphaVectors.containsKey(action)) {
           alphaVectors.put(action, new Double[pomdp.getNumStates()]);
           Arrays.fill(alphaVectors.get(action), 0.0);
@@ -67,7 +66,6 @@ public class NewPolicyLowerBound {
         }
       }
       immRwdMaximiser.add(maxRewAction); // action that maximises imm reward for the state
-      //System.out.println();
     }
     
     

@@ -100,7 +100,6 @@ public class FastInformedUpperBound {
             computeBeliefResiduals(alphaVectors.get(actionName), alphaTemporary));
         
         alphaVectors.put(actionName, alphaTemporary.clone());
-        //System.out.println(alphaTemporary[0]);
       }
       
     }
@@ -128,7 +127,6 @@ public class FastInformedUpperBound {
         while (iter < maxIter && (System.currentTimeMillis() - t0) / 1000.0 < maxTime) {
           update(pomdp, mdpRewards, target, remain);
           iter++;
-          //System.out.println("Iteration");
           
           boolean smallerThanBelRes = true;
           

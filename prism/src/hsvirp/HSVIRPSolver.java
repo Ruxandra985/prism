@@ -58,10 +58,11 @@ public class HSVIRPSolver {
     
     public Set<Map.Entry<Object, Double[]>> computeLowerBoundPolicy(POMDP<Double> pomdp, MDPRewards<Double> mdpRewards, BitSet remain){
       
-      //Set<Map.Entry<Object, Double[]>> policy = spol.computePolicy(pomdp, mdpRewards, remain).entrySet();
-      //policy.addAll(lowerBound.computePolicy(pomdp, mdpRewards, remain).entrySet());
+      // Choose which lower bound policy here
+      // npol = Ordinal Blind
+      // spol = Sighted
+      // lowerBound = Blind
       
-      //return policy;
       //return spol.computePolicy(pomdp, mdpRewards, remain).entrySet();
       return npol.computePolicy(pomdp, mdpRewards, remain).entrySet();
       //return lowerBound.computePolicy(pomdp, mdpRewards, remain).entrySet();
@@ -73,10 +74,6 @@ public class HSVIRPSolver {
 
     public ModelCheckerResult solve (POMDP<Double> pomdp, BitSet target, BitSet remain, boolean min, int sInit, MDPRewards<Double> mdpRewards) throws PrismException{
       
-      
-      //SightedPolicyLowerBound spol = new SightedPolicyLowerBound();
-      
-      //spol.computePolicy(pomdp, mdpRewards);
       
       
       int valueIterMax = 10000;
@@ -128,7 +125,6 @@ public class HSVIRPSolver {
             nrSubIter < nrIterations) {
           // sample
           sample(depthTrial, effectiveDiscount);
-          //System.out.println();
           // backup
           backupFrontier(); // should ensure the new bounds are indeed computed
           nrSubIter++;
@@ -303,7 +299,6 @@ public class HSVIRPSolver {
       double VLower = tree.VLower.get(currNode);
       double VUpper = tree.VUpper.get(currNode);
       
-      //System.out.println("state " + currNode + " upper " + VUpper + " lower " + VLower); 
       
       if (VUpper <= VLower + difference * kappa * Math.pow(effectiveDiscount, -currDepth) || currDepth > depthTrial ) {
         tree.frontier.add(currNode);
@@ -454,14 +449,12 @@ public class HSVIRPSolver {
         this.actionsFromCurr.remove(toRemove.get(i));
       }
       
-      //System.out.print(action+","+QUpper+" ");
       
       return action;
     }
 
 
     private void backupFrontier() {
-      //System.out.println(tree.frontier.size());
       for (int i = tree.frontier.size() - 1 ; i >= 0 ; i--) {
           backup(tree.frontier.get(i));
       }

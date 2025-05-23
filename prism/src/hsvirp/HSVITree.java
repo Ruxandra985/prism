@@ -102,23 +102,10 @@ class HSVITree {
     public static HSVITree initializeTree(HSVIRPSolver solver, POMDP<Double> pomdp, BitSet target, BitSet remain, MDPRewards<Double> mdpRewards) {
         HSVITree tree = new HSVITree(pomdp, solver, target, remain, mdpRewards);
 
-        Belief initialBelief = processState(tree, pomdp.getInitialBelief());
+        Belief initialBelief = pomdp.getInitialBelief();
         insertRoot(pomdp, tree, initialBelief);
 
         return tree;
-    }
-
-    private static Belief processState(HSVITree tree, Belief initialBelief) {
-      // normalise to get only states you want to remain in
-      //double[] beliefDist = initialBelief.toDistributionOverStates(tree.pomdp);
-      
-      /*for (int i = 0 ; i < tree.pomdp.getNumStates() ; i++) {
-        if (tree.remain != null && !tree.remain.get(i)) {
-          beliefDist[i] = 0.0;
-        }
-      }*/
-      
-      return initialBelief;
     }
 
     private static void insertRoot(POMDP<Double> pomdp, HSVITree tree, Belief belief) {
@@ -164,11 +151,7 @@ class HSVITree {
 
     public static Double[] addBelief(HSVITree tree, Belief newBelief) {
       
-      //if (newBelief.so == 3) {
-        //System.out.println("good state");
-      //}
-      
-      newBelief = processState(tree, newBelief);
+      newBelief = newBelief;
       
       for (int i = 0 ; i < tree.beliefNodes.size() ; i++) {
         
@@ -281,7 +264,6 @@ class HSVITree {
       
       tree.VUpper.set(beliefIndex, Collections.max(tree.QaUpper.get(beliefIndex)));
       
-      //System.out.print(beliefIndex+"," + tree.VUpper.get(beliefIndex) + " ");
       
     }
     
